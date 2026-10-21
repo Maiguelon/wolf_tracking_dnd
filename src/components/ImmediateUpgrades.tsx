@@ -50,15 +50,17 @@ export const ImmediateUpgrades: React.FC = () => {
     setUnlockingNodeId(node.id);
 
     try {
-      unlockSkill(node.id);
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#f59e0b', '#10b981', '#38bdf8'],
-      });
+      const success = unlockSkill(node.id);
+      if (success) {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 },
+          colors: ['#f59e0b', '#10b981', '#38bdf8'],
+        });
+      }
     } finally {
-      setTimeout(() => setUnlockingNodeId(null), 300);
+      setTimeout(() => setUnlockingNodeId(null), 250);
     }
   };
 

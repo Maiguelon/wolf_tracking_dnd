@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useMemo, useRef } from 'react';
 import type { WolfData, CalculatedWolfStats, SavingThrowPips } from '../types/wolf';
 import type { AppState } from '../store/wolfStore';
 import {
@@ -7,7 +7,8 @@ import {
   wolfReducer,
   BROADCAST_CHANNEL_NAME,
 } from '../store/wolfStore';
-import { calculateWolfStats } from '../engine/rulesEngine';
+import { calculateWolfStats, isNodeAvailable } from '../engine/rulesEngine';
+import { SKILL_NODE_MAP } from '../engine/skillTreeData';
 
 export type UserRole = 'dm' | 'player';
 
@@ -20,7 +21,7 @@ interface WolfContextType {
   setActiveWolfId: (id: string) => void;
   addWolf: (name: string, avatarUrl?: string) => void;
   updateProfile: (name: string, avatarUrl: string) => void;
-  unlockSkill: (nodeId: string) => void;
+  unlockSkill: (nodeId: string) => boolean;
   feedFood: (stat: keyof SavingThrowPips) => void;
   grantPoints: (delta: number) => void;
   addFood: (delta: number) => void;
@@ -49,37 +50,35 @@ export const WolfProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(wolfReducer, undefined, getInitialState);
   const [role, setRoleState] = React.useState<UserRole>(detectRoleFromUrl);
 
-  // Sync to localStorage and broadcast to other tabs
-  useEffect(() => {
-    saveStateToStorage(state);
+  const tabId = useRef(Math.random().toString(36).substring(2)).current;
+  const isRemoteSyncRef = useRef(false);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
-        channel.postMessage({ type: 'SYNC_STATE', state });
-        channel.close();
-      } catch (err) {
-        console.warn('BroadcastChannel error:', err);
-      }
+  // Initialize broadcast channel and storage listeners once
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if ('BroadcastChannel' in window) {
+      const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+      channelRef.current = channel;
+
+      channel.onmessage = (event) => {
+        // Discard own messages or empty data
+        if (!event.data || event.data.senderId === tabId) return;
+
+        if (event.data.type === 'SYNC_STATE' && event.data.state) {
+          isRemoteSyncRef.current = true;
+          dispatch({ type: 'SYNC_STATE', state: event.data.state });
+        }
+      };
     }
-  }, [state]);
-
-  // Listen for broadcast messages from other tabs (DM <-> Player)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
-
-    const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
-    channel.onmessage = (event) => {
-      if (event.data?.type === 'SYNC_STATE' && event.data.state) {
-        dispatch({ type: 'SYNC_STATE', state: event.data.state });
-      }
-    };
 
     const handleStorageEvent = (e: StorageEvent) => {
       if (e.key === 'wolf_tracker_state_v1' && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed.wolves) {
+            isRemoteSyncRef.current = true;
             dispatch({ type: 'SYNC_STATE', state: parsed });
           }
         } catch (err) {
@@ -91,10 +90,36 @@ export const WolfProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
-      channel.close();
+      if (channelRef.current) {
+        channelRef.current.close();
+        channelRef.current = null;
+      }
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, []);
+  }, [tabId]);
+
+  // Persist locally and broadcast ONLY local updates (breaking echo loops)
+  useEffect(() => {
+    saveStateToStorage(state);
+
+    if (isRemoteSyncRef.current) {
+      // This state was received from another tab; do not echo it back!
+      isRemoteSyncRef.current = false;
+      return;
+    }
+
+    if (channelRef.current) {
+      try {
+        channelRef.current.postMessage({
+          type: 'SYNC_STATE',
+          state,
+          senderId: tabId,
+        });
+      } catch (err) {
+        console.warn('Broadcast send error:', err);
+      }
+    }
+  }, [state, tabId]);
 
   // Sync wolf ID from URL if provided
   useEffect(() => {
@@ -135,8 +160,17 @@ export const WolfProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addWolf: (name: string, avatarUrl?: string) => dispatch({ type: 'ADD_WOLF', name, avatarUrl }),
     updateProfile: (name: string, avatarUrl: string) =>
       dispatch({ type: 'UPDATE_PROFILE', wolfId: activeWolf.id, name, avatarUrl }),
-    unlockSkill: (nodeId: string) =>
-      dispatch({ type: 'UNLOCK_SKILL', wolfId: activeWolf.id, nodeId }),
+    unlockSkill: (nodeId: string): boolean => {
+      const currentWolf = state.wolves[state.activeWolfId];
+      if (!currentWolf) return false;
+      const stats = calculateWolfStats(currentWolf);
+      if (stats.availablePoints <= 0) return false;
+      const node = SKILL_NODE_MAP.get(nodeId);
+      if (!node || !isNodeAvailable(currentWolf, node)) return false;
+
+      dispatch({ type: 'UNLOCK_SKILL', wolfId: currentWolf.id, nodeId });
+      return true;
+    },
     feedFood: (stat: keyof SavingThrowPips) =>
       dispatch({ type: 'FEED_FOOD', wolfId: activeWolf.id, stat }),
     grantPoints: (delta: number) =>

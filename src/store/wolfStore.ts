@@ -71,8 +71,28 @@ export type WolfAction =
 
 export function wolfReducer(state: AppState, action: WolfAction): AppState {
   switch (action.type) {
-    case 'SYNC_STATE':
-      return action.state;
+    case 'SYNC_STATE': {
+      const mergedWolves: Record<string, WolfData> = { ...state.wolves };
+      let hasChanges = false;
+
+      for (const id in action.state.wolves) {
+        const remoteWolf = action.state.wolves[id];
+        const localWolf = state.wolves[id];
+
+        // Adopt remote wolf only if local doesn't exist or remote is newer
+        if (!localWolf || remoteWolf.updatedAt > localWolf.updatedAt) {
+          mergedWolves[id] = remoteWolf;
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return state;
+
+      return {
+        ...state,
+        wolves: mergedWolves,
+      };
+    }
 
     case 'SET_ACTIVE_WOLF': {
       if (!state.wolves[action.wolfId]) return state;
