@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WolfProvider, useWolf } from './context/WolfContext';
 import { WolfSheet } from './components/WolfSheet';
+import { ImmediateUpgrades } from './components/ImmediateUpgrades';
 import {
   PawPrint,
   Sparkles,
@@ -197,15 +198,7 @@ const AppContent: React.FC = () => {
         )}
 
         {activeTab === 'upgrades' && (
-          <div className="bg-stone-900/60 border border-stone-800 rounded-3xl p-6 text-center py-12">
-            <Sparkles className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-            <h3 className="text-xl font-bold text-stone-100">
-              Módulo de Mejoras Inmediatas (Chunk 4)
-            </h3>
-            <p className="text-sm text-stone-400 max-w-md mx-auto mt-2">
-              Aquí se mostrarán las opciones desbloqueables organizadas por las 4 ramas con swipe táctil y selector de ramas.
-            </p>
-          </div>
+          <ImmediateUpgrades />
         )}
 
         {activeTab === 'dm' && (
