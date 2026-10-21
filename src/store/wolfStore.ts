@@ -29,6 +29,13 @@ export function getInitialState(): AppState {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.wolves && parsed.activeWolfId) {
+        // Sanitize legacy avatar URLs from previous versions
+        for (const id in parsed.wolves) {
+          const w = parsed.wolves[id];
+          if (w.avatarUrl) {
+            w.avatarUrl = w.avatarUrl.replace(/\.jpg$/, '.png');
+          }
+        }
         return parsed;
       }
     }
