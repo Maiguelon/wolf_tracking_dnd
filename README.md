@@ -52,28 +52,41 @@ Diseñada para resolver la sobrecarga de opciones del jugador en mesa física: e
 
 ---
 
-## 🚀 Despliegue en Cloudflare Pages (Gratis)
+## 🚀 Despliegue en Cloudflare Workers
 
-El proyecto está 100% optimizado para **Cloudflare Pages**:
+El servicio existente se llama **`wolf-tracking-dnd`** y está conectado al repositorio `Maiguelon/wolf_tracking_dnd`, rama `main`.
 
-### Opción 1: Conectar Repositorio GitHub (Recomendado)
-1. Sube este repositorio a tu cuenta de GitHub.
-2. Entra en tu dashboard de **Cloudflare** > **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
-3. Selecciona el repositorio `wolf_tracking_dnd`.
-4. Configura los parámetros de compilación:
-   * **Framework preset:** `Vite`
-   * **Build command:** `npm run build`
-   * **Build output directory:** `dist`
-5. Haz clic en **Save and Deploy**.
-6. ¡Listo! Cloudflare te dará un subdominio `.pages.dev` gratis y con SSL automático (también puedes enlazar tu dominio propio en 1 clic).
+### Despliegue desde GitHub
 
-### Opción 2: Despliegue Directo con Wrangler CLI
+En **Workers & Pages → wolf-tracking-dnd → Settings → Build**, usa:
+
+* **Root directory:** `/` (raíz del repositorio).
+* **Build command:** `npm run build`.
+* **Deploy command:** `npx wrangler deploy`.
+* **Production branch:** `main`.
+* No se necesitan variables de entorno para esta aplicación.
+
+Sube los cambios a `main` para iniciar un despliegue automático. Para reintentar un despliegue desde Cloudflare, abre **Deployments → Build history → View build → Retry build**.
+
+`wrangler.jsonc` indica el nombre del servicio, la carpeta de archivos compilados (`dist`) y el modo `single-page-application`, que sirve `index.html` al abrir rutas de la aplicación directamente.
+
+### Despliegue manual desde la computadora
+
+Abre PowerShell en la carpeta del proyecto y ejecuta:
+
 ```powershell
-npm install -g wrangler
-wrangler pages deploy dist --project-name=wolf-tracker
+npm ci
+npx wrangler login
+npm run deploy
 ```
 
-*(Nota: el archivo `public/_redirects` ya está incluido para que las rutas SPA como `/dm` no den error 404 en Cloudflare).*
+El inicio de sesión abre el navegador; elige la cuenta donde está `wolf-tracking-dnd`. Solo hace falta iniciar sesión si no tienes una sesión válida. `npm run deploy` compila la versión local y después la publica en ese mismo servicio. Wrangler está incluido en las dependencias del proyecto y no requiere instalación global. Al finalizar, abre la dirección `.workers.dev` que muestra el comando y comprueba la ficha y el panel `?role=dm`.
+
+### Qué causó el fallo del 21 de octubre de 2026
+
+La compilación terminaba correctamente, pero la publicación fallaba con **`Invalid _redirects configuration`**, **`Infinite loop detected`**, código **`100324`**. El archivo `public/_redirects` contenía `/* /index.html 200`: Workers detectaba que esa regla podía volver a aplicarse tras normalizar la URL de destino. Se eliminó la regla y se configuró el soporte SPA nativo en `wrangler.jsonc`.
+
+Las instrucciones anteriores usaban **Pages**, pero el servicio creado en Cloudflare es un **Worker**. Para este servicio utiliza `wrangler deploy`, sin `pages`. No vuelvas a añadir esa regla general en `_redirects`; conserva `assets.not_found_handling: "single-page-application"`. Referencia: [rutas SPA en Cloudflare Workers](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/).
 
 ---
 
