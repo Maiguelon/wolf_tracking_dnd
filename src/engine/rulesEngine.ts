@@ -252,7 +252,7 @@ export function createInitialWolf(id = 'lobo-1', name = 'Lobo Compañero'): Wolf
   return {
     id,
     name,
-    avatarUrl: '/avatars/wolf-gray.webp',
+    avatarUrl: '/avatars/wolf_gray.jpg',
     totalSkillPoints: 1, // 1 starting point to try out
     unlockedNodeIds: [],
     specialFoodCount: 2, // 2 starting treats
