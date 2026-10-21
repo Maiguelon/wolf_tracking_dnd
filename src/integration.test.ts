@@ -36,11 +36,9 @@ describe('End-to-End Game Session Flow', () => {
 
     let fenrir = state.wolves[fenrirId];
     let stats = calculateWolfStats(fenrir);
-    // Initial wolf had 1 point, plus 3 = 4 total points
-    expect(fenrir.totalSkillPoints).toBe(4);
-    expect(stats.availablePoints).toBe(4);
-    // Initial food was 2, plus 3 = 5 total food
-    expect(fenrir.specialFoodCount).toBe(5);
+    expect(fenrir.totalSkillPoints).toBe(3);
+    expect(stats.availablePoints).toBe(3);
+    expect(fenrir.specialFoodCount).toBe(3);
 
     // 4. Player inspects available immediate upgrades
     let available = getAvailableUpgrades(fenrir);
@@ -63,14 +61,15 @@ describe('End-to-End Game Session Flow', () => {
     stats = calculateWolfStats(fenrir);
 
     expect(stats.spentPoints).toBe(2);
-    expect(stats.availablePoints).toBe(2);
+    expect(stats.availablePoints).toBe(1);
     expect(stats.biteDamage).toBe('1d6');
     expect(stats.commands.map((c) => c.name)).toContain('Comando de Carrera');
 
     // 6. Upgrades automatically advance along branches
     available = getAvailableUpgrades(fenrir);
     expect(available.combat.map((n) => n.id)).toContain('combat_bite_2');
-    expect(available.combat.map((n) => n.id)).toContain('combat_relentless');
+    expect(available.combat.map((n) => n.id)).not.toContain('combat_relentless');
+    expect(available.combat.map((n) => n.id)).toContain('combat_shove');
     expect(available.mobility.map((n) => n.id)).toContain('mobility_disengage');
 
     // 7. Player feeds 2 special foods to Dexterity
@@ -89,7 +88,7 @@ describe('End-to-End Game Session Flow', () => {
     stats = calculateWolfStats(fenrir);
     // Base Dex save is +1, fed 2 pips -> becomes +3
     expect(stats.savingThrows.dex).toBe(3);
-    expect(fenrir.specialFoodCount).toBe(3);
+    expect(fenrir.specialFoodCount).toBe(1);
 
     // 8. Player mistakenly learns Bite 2d6, asks DM for Respec
     state = wolfReducer(state, {
@@ -108,10 +107,10 @@ describe('End-to-End Game Session Flow', () => {
     fenrir = state.wolves[fenrirId];
     stats = calculateWolfStats(fenrir);
 
-    // Unlocked skills are cleared, but all 4 skill points are preserved!
+    // All three earned points are refunded, food improvements are retained.
     expect(fenrir.unlockedNodeIds.length).toBe(0);
     expect(stats.spentPoints).toBe(0);
-    expect(stats.availablePoints).toBe(4);
+    expect(stats.availablePoints).toBe(3);
     // Special food benefits remain intact through respec
     expect(stats.savingThrows.dex).toBe(3);
 
@@ -129,6 +128,6 @@ describe('End-to-End Game Session Flow', () => {
 
     stats = calculateWolfStats(state.wolves[fenrirId]);
     expect(stats.speed).toBe(50); // Highest non-cumulative speed
-    expect(stats.availablePoints).toBe(2);
+    expect(stats.availablePoints).toBe(1);
   });
 });

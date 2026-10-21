@@ -160,7 +160,7 @@ export const CommandsList: React.FC<Props> = ({ stats }) => {
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-sm font-bold text-purple-300">{ability.name}</span>
                       <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-800/40">
-                        {ability.frequency}
+                        {ability.actionType ? `${ability.actionType} · ${ability.frequency}` : ability.frequency}
                       </span>
                     </div>
                     <p className="text-xs text-stone-400 leading-relaxed">{ability.description}</p>

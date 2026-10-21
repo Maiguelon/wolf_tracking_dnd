@@ -7,7 +7,7 @@ import {
   wolfReducer,
   BROADCAST_CHANNEL_NAME,
 } from '../store/wolfStore';
-import { calculateWolfStats, isNodeAvailable } from '../engine/rulesEngine';
+import { calculateWolfStats, getSkillCost, isNodeAvailable } from '../engine/rulesEngine';
 import { SKILL_NODE_MAP } from '../engine/skillTreeData';
 
 export type UserRole = 'dm' | 'player';
@@ -26,6 +26,7 @@ interface WolfContextType {
   grantPoints: (delta: number) => void;
   addFood: (delta: number) => void;
   respec: () => void;
+  acknowledgeRulesUpdate: () => void;
 }
 
 const WolfContext = createContext<WolfContextType | null>(null);
@@ -166,7 +167,7 @@ export const WolfProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const stats = calculateWolfStats(currentWolf);
       if (stats.availablePoints <= 0) return false;
       const node = SKILL_NODE_MAP.get(nodeId);
-      if (!node || !isNodeAvailable(currentWolf, node)) return false;
+      if (!node || stats.availablePoints < getSkillCost(node) || !isNodeAvailable(currentWolf, node)) return false;
 
       dispatch({ type: 'UNLOCK_SKILL', wolfId: currentWolf.id, nodeId });
       return true;
@@ -179,6 +180,8 @@ export const WolfProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'ADD_FOOD', wolfId: activeWolf.id, delta }),
     respec: () =>
       dispatch({ type: 'RESPEC', wolfId: activeWolf.id }),
+    acknowledgeRulesUpdate: () =>
+      dispatch({ type: 'ACKNOWLEDGE_RULES_UPDATE', wolfId: activeWolf.id }),
   };
 
   return <WolfContext.Provider value={value}>{children}</WolfContext.Provider>;

@@ -4,6 +4,9 @@ import {
   unlockNode,
   feedSpecialFood,
   respecWolf,
+  getSpentPoints,
+  migrateWolfRules,
+  RULES_VERSION,
 } from '../engine/rulesEngine';
 
 export interface AppState {
@@ -29,12 +32,21 @@ export function getInitialState(): AppState {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.wolves && parsed.activeWolfId) {
+        if (Object.values(parsed.wolves as Record<string, WolfData>).some(wolf => (wolf.rulesVersion ?? 1) < RULES_VERSION)) {
+          try {
+            const backupKey = `${STORAGE_KEY}_before_rules_v${RULES_VERSION}`;
+            if (!localStorage.getItem(backupKey)) localStorage.setItem(backupKey, saved);
+          } catch (error) {
+            console.warn('No se pudo guardar la copia de las reglas anteriores:', error);
+          }
+        }
         // Sanitize legacy avatar URLs from previous versions
         for (const id in parsed.wolves) {
           const w = parsed.wolves[id];
           if (w.avatarUrl) {
             w.avatarUrl = w.avatarUrl.replace(/\.jpg$/, '.png');
           }
+          parsed.wolves[id] = migrateWolfRules(w);
         }
         return parsed;
       }
@@ -67,7 +79,8 @@ export type WolfAction =
   | { type: 'GRANT_POINTS'; wolfId: string; delta: number }
   | { type: 'ADD_FOOD'; wolfId: string; delta: number }
   | { type: 'RESPEC'; wolfId: string }
-  | { type: 'SYNC_STATE'; state: AppState };
+  | { type: 'SYNC_STATE'; state: AppState }
+  | { type: 'ACKNOWLEDGE_RULES_UPDATE'; wolfId: string };
 
 export function wolfReducer(state: AppState, action: WolfAction): AppState {
   switch (action.type) {
@@ -174,7 +187,7 @@ export function wolfReducer(state: AppState, action: WolfAction): AppState {
     case 'GRANT_POINTS': {
       const wolf = state.wolves[action.wolfId];
       if (!wolf) return state;
-      const newTotal = Math.max(wolf.unlockedNodeIds.length, wolf.totalSkillPoints + action.delta);
+      const newTotal = Math.max(getSpentPoints(wolf), wolf.totalSkillPoints + action.delta);
       return {
         ...state,
         wolves: {
@@ -214,6 +227,18 @@ export function wolfReducer(state: AppState, action: WolfAction): AppState {
         wolves: {
           ...state.wolves,
           [action.wolfId]: updated,
+        },
+      };
+    }
+
+    case 'ACKNOWLEDGE_RULES_UPDATE': {
+      const wolf = state.wolves[action.wolfId];
+      if (!wolf?.rulesMigration) return state;
+      return {
+        ...state,
+        wolves: {
+          ...state.wolves,
+          [wolf.id]: { ...wolf, rulesMigration: undefined, updatedAt: Date.now() },
         },
       };
     }

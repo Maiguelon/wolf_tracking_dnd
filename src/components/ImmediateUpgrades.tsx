@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useWolf } from '../context/WolfContext';
-import { getAvailableUpgrades } from '../engine/rulesEngine';
-import { BRANCH_METADATA } from '../engine/skillTreeData';
+import { getAvailableUpgrades, getSkillCost, getSkillFrequency } from '../engine/rulesEngine';
+import { BRANCH_METADATA, SKILL_NODE_MAP } from '../engine/skillTreeData';
 import type { SkillBranchId, SkillNode } from '../types/wolf';
 import {
   Swords,
@@ -46,7 +46,7 @@ export const ImmediateUpgrades: React.FC = () => {
   };
 
   const handleLearn = (node: SkillNode) => {
-    if (activeStats.availablePoints <= 0) return;
+    if (activeStats.availablePoints < getSkillCost(node)) return;
     setUnlockingNodeId(node.id);
 
     try {
@@ -122,7 +122,7 @@ export const ImmediateUpgrades: React.FC = () => {
           {BRANCH_ORDER.map((branchId) => {
             const meta = BRANCH_METADATA[branchId];
             const isSelected = selectedBranch === branchId;
-            const count = availableMap[branchId].length;
+            const count = availableMap[branchId].filter(node => activeStats.availablePoints >= getSkillCost(node)).length;
             const branchPoints = activeStats.branchPoints[branchId];
 
             return (
@@ -206,10 +206,10 @@ export const ImmediateUpgrades: React.FC = () => {
             </div>
             <div className="text-right shrink-0 ml-3">
               <span className="text-xs font-bold text-stone-300 block">
-                {currentBranchNodes.length}
+                {currentBranchNodes.filter(node => activeStats.availablePoints >= getSkillCost(node)).length}
               </span>
               <span className="text-[10px] text-stone-500 block">
-                disponibles ahora
+                puedes aprender ahora
               </span>
             </div>
           </div>
@@ -218,7 +218,8 @@ export const ImmediateUpgrades: React.FC = () => {
           {currentBranchNodes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {currentBranchNodes.map((node) => {
-                const canAfford = activeStats.availablePoints > 0;
+                const cost = getSkillCost(node);
+                const canAfford = activeStats.availablePoints >= cost;
                 const isApex = node.isApex;
 
                 return (
@@ -252,6 +253,7 @@ export const ImmediateUpgrades: React.FC = () => {
                               : node.category === 'stat_boost'
                               ? 'Mejora Estadística'
                               : 'Rasgo Pasivo'}
+                            {node.frequency && ` · ${getSkillFrequency(node)}`}
                           </span>
                         </div>
                       </div>
@@ -265,6 +267,11 @@ export const ImmediateUpgrades: React.FC = () => {
                       <p className="text-xs text-stone-300 mt-2 leading-relaxed">
                         {node.descriptionEs}
                       </p>
+                      {node.prerequisites.length > 0 && (
+                        <p className="mt-2 text-[11px] text-stone-400">
+                          Requiere: {node.prerequisites.map(id => SKILL_NODE_MAP.get(id)?.nameEs ?? id).join(node.requiresAnyPrereq ? ' o ' : ' y ')}
+                        </p>
+                      )}
 
                       {/* Stat change preview if modifiers exist */}
                       {node.modifiers && (
@@ -303,7 +310,7 @@ export const ImmediateUpgrades: React.FC = () => {
                     {/* Action Button */}
                     <div className="mt-5 pt-3 border-t border-stone-800/80 flex items-center justify-between gap-3">
                       <div className="text-[11px] text-stone-500">
-                        Coste: <strong className="text-stone-300">1 Punto</strong>
+                        Coste: <strong className="text-stone-300">{cost} {cost === 1 ? 'Punto' : 'Puntos'}</strong>
                       </div>
 
                       <button
@@ -325,7 +332,7 @@ export const ImmediateUpgrades: React.FC = () => {
                         ) : (
                           <>
                             <Lock className="w-3.5 h-3.5" />
-                            <span>Requiere Punto</span>
+                            <span>Requiere {cost} {cost === 1 ? 'punto' : 'puntos'}</span>
                           </>
                         )}
                       </button>

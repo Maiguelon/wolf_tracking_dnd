@@ -16,6 +16,8 @@ export interface SkillNode {
   description: string;
   descriptionEs: string;
   category: AbilityCategory;
+  cost?: number;
+  frequency?: 'daily' | 'weekly';
   isApex?: boolean;
   apexPointsRequired?: number; // usually 10
   prerequisites: string[]; // Node IDs that MUST be unlocked first (ALL or ANY depending on requiresAny)
@@ -66,10 +68,13 @@ export interface WolfData {
   notes?: string;
   createdAt: number;
   updatedAt: number;
+  rulesVersion?: number;
+  rulesMigration?: { removedSkills: string[] };
 }
 
 export interface CalculatedWolfStats {
-  level: number; // count of unlocked nodes
+  level: number; // skill points spent, including the two-point Apex skills
+  learnedSkillCount: number;
   spentPoints: number;
   availablePoints: number;
   ac: number;
@@ -79,6 +84,8 @@ export interface CalculatedWolfStats {
   savingThrows: SavingThrows;
   branchPoints: Record<SkillBranchId, number>;
   biteDamage: string | null;
+  biteRange: number;
+  biteTrigger: string;
   perceptionBonus: number;
   stealthBonus: number;
   performanceBonus: number;
@@ -97,6 +104,7 @@ export interface CalculatedWolfStats {
     name: string;
     description: string;
     frequency: string;
+    actionType?: string;
   }[];
   apexSkills: {
     name: string;

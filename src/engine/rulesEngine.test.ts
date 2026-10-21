@@ -25,7 +25,8 @@ describe('Wolf Pet Skill Tree Rules Engine', () => {
     expect(stats.savingThrows.wis).toBe(1);
     expect(stats.savingThrows.cha).toBe(-2);
     expect(stats.level).toBe(0);
-    expect(stats.availablePoints).toBe(1);
+    expect(stats.availablePoints).toBe(0);
+    expect(wolf.specialFoodCount).toBe(0);
   });
 
   it('provides root nodes as available upgrades for a fresh wolf', () => {
@@ -45,21 +46,21 @@ describe('Wolf Pet Skill Tree Rules Engine', () => {
     expect(mobilityRootIds).toContain('mobility_dash');
     expect(mobilityRootIds).toContain('mobility_messages');
 
-    // Tracking roots: Curiosity, Primeval Awareness, Search +5, Hide +5
+    // The unboxed Primeval Awareness heading is not a purchased root.
     const trackingRootIds = available.tracking.map((n) => n.id);
     expect(trackingRootIds).toContain('tracking_curiosity');
-    expect(trackingRootIds).toContain('tracking_primeval_awareness');
+    expect(trackingRootIds).not.toContain('tracking_primeval_awareness');
     expect(trackingRootIds).toContain('tracking_search');
     expect(trackingRootIds).toContain('tracking_hide');
 
-    // Emotional roots: Center of Attention, Comforting Rest, Help Command, Entertainer +5, Mental Ward +d4, Soothing Presence
+    // Emotional roots are the three lines entering Intelligence.
     const emotionalRootIds = available.emotional.map((n) => n.id);
     expect(emotionalRootIds).toContain('emotional_center_of_attention');
     expect(emotionalRootIds).toContain('emotional_short_rest_double');
-    expect(emotionalRootIds).toContain('emotional_help');
-    expect(emotionalRootIds).toContain('emotional_entertain_5');
+    expect(emotionalRootIds).not.toContain('emotional_help');
+    expect(emotionalRootIds).not.toContain('emotional_entertain_5');
     expect(emotionalRootIds).toContain('emotional_wisdom_save_d4');
-    expect(emotionalRootIds).toContain('emotional_soothing_presence');
+    expect(emotionalRootIds).not.toContain('emotional_soothing_presence');
   });
 
   it('respects non-cumulative rules (takes the highest)', () => {
@@ -91,7 +92,9 @@ describe('Wolf Pet Skill Tree Rules Engine', () => {
 
     wolf = unlockNode(wolf, 'combat_bite_1');
     expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_bite_2')!)).toBe(true);
-    expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_relentless')!)).toBe(true);
+    expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_relentless')!)).toBe(false);
+    expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_shove')!)).toBe(true);
+    expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_intimidation')!)).toBe(true);
 
     wolf = unlockNode(wolf, 'combat_bite_2');
     expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('combat_bite_3')!)).toBe(true);
@@ -101,7 +104,8 @@ describe('Wolf Pet Skill Tree Rules Engine', () => {
     let wolf = createInitialWolf();
     wolf.totalSkillPoints = 10;
 
-    wolf = unlockNode(wolf, 'tracking_primeval_awareness');
+    wolf = unlockNode(wolf, 'tracking_curiosity');
+    wolf = unlockNode(wolf, 'tracking_helpful_fact');
     expect(isNodeAvailable(wolf, SKILL_NODE_MAP.get('tracking_hunters_mark')!)).toBe(false);
 
     // Unlock just Aberrations & Undead
@@ -165,7 +169,7 @@ describe('Wolf Pet Skill Tree Rules Engine', () => {
 
   it('updates saving throws with special food treats', () => {
     let wolf = createInitialWolf();
-    expect(wolf.specialFoodCount).toBe(2);
+    wolf.specialFoodCount = 2; // granted by the DM
 
     // Base Wis is +1
     let stats = calculateWolfStats(wolf);

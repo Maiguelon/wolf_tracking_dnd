@@ -3,6 +3,7 @@ import { WolfProvider, useWolf } from './context/WolfContext';
 import { WolfSheet } from './components/WolfSheet';
 import { ImmediateUpgrades } from './components/ImmediateUpgrades';
 import { DMDashboard } from './components/DMDashboard';
+import { calculateWolfStats } from './engine/rulesEngine';
 import {
   PawPrint,
   Sparkles,
@@ -15,7 +16,7 @@ import {
 type Tab = 'sheet' | 'upgrades' | 'dm';
 
 const AppContent: React.FC = () => {
-  const { state, activeWolf, activeStats, role, setRole, setActiveWolfId, addWolf } = useWolf();
+  const { state, activeWolf, activeStats, role, setRole, setActiveWolfId, addWolf, acknowledgeRulesUpdate } = useWolf();
   const [activeTab, setActiveTab] = useState<Tab>('sheet');
   const [isCopied, setIsCopied] = useState(false);
   const [showAddWolfPrompt, setShowAddWolfPrompt] = useState(false);
@@ -71,7 +72,7 @@ const AppContent: React.FC = () => {
               >
                 {wolvesList.map((w) => (
                   <option key={w.id} value={w.id} className="bg-stone-900 text-stone-200">
-                    {w.name} (Nv. {w.unlockedNodeIds.length})
+                    {w.name} (Nv. {calculateWolfStats(w).level})
                   </option>
                 ))}
               </select>
@@ -189,6 +190,16 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+        {activeWolf.rulesMigration && (
+          <div role="status" className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-950/30 p-4 text-sm text-amber-100">
+            <p className="font-bold">Ficha ajustada a la hoja original</p>
+            <p className="mt-1">Conservas tus {activeWolf.totalSkillPoints} puntos totales y las mejoras de comida. Los Apex cuestan 2 puntos.</p>
+            {activeWolf.rulesMigration.removedSkills.length > 0 && (
+              <p className="mt-1">Estas compras se retiraron por los requisitos o costes corregidos; sus puntos vuelven a estar disponibles: {activeWolf.rulesMigration.removedSkills.join(', ')}.</p>
+            )}
+            <button type="button" onClick={acknowledgeRulesUpdate} className="mt-3 rounded-lg border border-amber-500/40 px-3 py-1 font-bold">Entendido</button>
+          </div>
+        )}
         {activeTab === 'sheet' && (
           <WolfSheet onGoToUpgrades={() => setActiveTab('upgrades')} />
         )}

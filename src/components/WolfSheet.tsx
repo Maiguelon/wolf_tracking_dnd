@@ -64,7 +64,7 @@ export const WolfSheet: React.FC<Props> = ({ onGoToUpgrades }) => {
                   </button>
                 </div>
                 <p className="text-xs text-stone-400 mt-1">
-                  Compañero Bestia • Sintonizado • {activeStats.spentPoints} mejoras aprendidas • {activeWolf.totalSkillPoints} puntos totales
+                  Compañero Bestia • Sintonizado • {activeStats.learnedSkillCount} mejoras aprendidas • {activeStats.spentPoints} puntos invertidos • {activeWolf.totalSkillPoints} puntos totales
                 </p>
               </div>
 

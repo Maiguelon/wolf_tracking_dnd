@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useWolf } from '../context/WolfContext';
 import { SavingThrowDisplay } from './SavingThrowDisplay';
 import { SKILL_NODE_MAP, BRANCH_METADATA } from '../engine/skillTreeData';
+import { calculateWolfStats } from '../engine/rulesEngine';
 import type { SavingThrowPips, SkillBranchId } from '../types/wolf';
 import {
   ShieldCheck,
@@ -155,7 +156,7 @@ export const DMDashboard: React.FC = () => {
               >
                 <span>{w.name}</span>
                 <span className="text-[10px] opacity-75">
-                  Nv. {w.unlockedNodeIds.length}
+                  Nv. {calculateWolfStats(w).level}
                 </span>
               </button>
             ))}
@@ -326,7 +327,7 @@ export const DMDashboard: React.FC = () => {
             </h3>
           </div>
           <span className="text-xs text-stone-400">
-            {activeStats.spentPoints} habilidades activas
+            {activeStats.learnedSkillCount} habilidades aprendidas
           </span>
         </div>
 

@@ -55,7 +55,7 @@ export const StatsGrid: React.FC<Props> = ({ stats }) => {
             </div>
             {stats.jump > 0 && (
               <div className="text-[10px] text-emerald-400">
-                Salto: +{stats.jump} pies
+                Salto: {stats.jump} pies
               </div>
             )}
           </div>
@@ -74,10 +74,12 @@ export const StatsGrid: React.FC<Props> = ({ stats }) => {
               {stats.biteDamage ? (
                 <>+{stats.biteDamage}</>
               ) : (
-                <span className="text-sm font-normal text-stone-500">Base</span>
+                <span className="text-sm font-normal text-stone-500">Sin aprender</span>
               )}
             </div>
-            <div className="text-[10px] text-stone-500">1/turno (a 5 pies)</div>
+            {stats.biteDamage && (
+              <div className="text-[10px] text-stone-500">1/turno • a {stats.biteRange} pies<br />{stats.biteTrigger}</div>
+            )}
           </div>
         </div>
       </div>

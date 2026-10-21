@@ -1,6 +1,6 @@
 # 🐺 Wolf Companion — D&D 5e Evolution Tracker
 
-Aplicación web interactiva para gestionar el árbol de evolución y estadísticas de compañeros lobo en **Dungeons & Dragons 5e**, basada en el sistema oficial de la hoja *"Wolf Pet Skill Tree"*.
+Aplicación web interactiva para gestionar el árbol de evolución y estadísticas de compañeros lobo en **Dungeons & Dragons 5e**, basada en la hoja de referencia *"Wolf Pet Skill Tree"* proporcionada para este proyecto.
 
 Diseñada para resolver la sobrecarga de opciones del jugador en mesa física: en lugar de lidiar con hojas de papel llenas de tachaduras, el jugador ve en una pestaña su lobo actual y en otra **únicamente las mejoras inmediatas disponibles**, con opción de swipe táctil y vista panorámica del árbol para planificar a futuro.
 
@@ -51,6 +51,18 @@ Diseñada para resolver la sobrecarga de opciones del jugador en mesa física: e
   * Arquitectura lista para conectar con Supabase o Cloudflare D1 si se desea sincronización remota entre dispositivos.
 
 ---
+
+## Reglas de la hoja y fichas guardadas
+
+Las conexiones del dibujo determinan los prerrequisitos. Cuando convergen caminos en un nodo, se permite llegar por cualquiera de ellos: Inteligencia se aprende desde Centro de Atención, Descanso Reconfortante o Guarda Mental; Marca requiere al menos un grupo de criaturas entrenado.
+
+Cada casilla cuesta un punto: las habilidades normales cuestan uno y los Apex, que tienen dos casillas en la hoja, cuestan dos. Los Apex requieren además diez puntos invertidos en su rama; Elusión Suprema requiere Evasión. El nivel y el saldo se calculan por puntos invertidos, no por cantidad de habilidades. No se suman los distintos escalones de un mismo bono.
+
+Sentido Primitivo es un encabezado: sus tres grupos de criaturas se compran directamente después de Dato Útil del Territorio. Empuje e Intimidación salen del primer Mordisco; Incansable sale de PG 45. En Soporte Emocional, Inspiración sale del primer Descanso Reconfortante, mientras que Ayuda, Interpretación y Presencia Calmante salen de Inteligencia.
+
+Los lobos nuevos empiezan sin puntos ni comida especial de regalo. El DM otorga ambos recursos. Las habilidades diarias y semanales muestran su frecuencia como recordatorio; sus usos en la partida se llevan manualmente.
+
+Al cargar una ficha anterior a esta corrección se conserva el total de puntos, las raciones y las mejoras de salvación. Se mantienen las habilidades que cumplen los nuevos requisitos y cuyo coste puede pagarse; las demás se retiran y su saldo queda disponible para volver a aprenderlas. Un aviso en pantalla explica el ajuste. La copia original completa se guarda una sola vez en el almacenamiento del navegador, con la clave `wolf_tracker_state_v1_before_rules_v2`. Las fichas existentes conservan los recursos iniciales que ya tenían; no se les descuentan los antiguos regalos. Recarga las pestañas abiertas para usar la misma versión de las reglas.
 
 ## 🚀 Despliegue en Cloudflare Workers
 

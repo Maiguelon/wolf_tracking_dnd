@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWolf } from '../context/WolfContext';
-import { SKILL_TREE_NODES, BRANCH_METADATA } from '../engine/skillTreeData';
-import { isNodeAvailable } from '../engine/rulesEngine';
+import { SKILL_TREE_NODES, SKILL_NODE_MAP, BRANCH_METADATA } from '../engine/skillTreeData';
+import { getSkillCost, isNodeAvailable } from '../engine/rulesEngine';
 import type { SkillBranchId, SkillNode } from '../types/wolf';
 import {
   X,
@@ -74,6 +74,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
           </div>
 
           <button
+            aria-label="Cerrar árbol de habilidades"
             onClick={onClose}
             className="p-1.5 rounded-full text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition cursor-pointer"
           >
@@ -129,7 +130,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
               <span className="w-2.5 h-2.5 rounded-full bg-stone-700" /> Bloqueada
             </span>
             <span className="flex items-center gap-1">
-              <Crown className="w-3 h-3 text-amber-400" /> Apex (10 pts)
+              <Crown className="w-3 h-3 text-amber-400" /> Apex (10 pts en rama · coste 2)
             </span>
           </div>
         </div>
@@ -167,7 +168,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
               {regularNodes.map((node) => {
                 const isUnlocked = unlockedSet.has(node.id);
                 const isAvailable = isNodeAvailable(activeWolf, node);
-                const canLearn = isAvailable && activeStats.availablePoints > 0;
+                const canLearn = isAvailable && activeStats.availablePoints >= getSkillCost(node);
 
                 return (
                   <div
@@ -214,7 +215,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
                         {isUnlocked
                           ? '✅ Aprendida'
                           : isAvailable
-                          ? '⚡ Disponible'
+                          ? canLearn ? '⚡ Disponible' : `Requiere ${getSkillCost(node)} ${getSkillCost(node) === 1 ? 'punto' : 'puntos'}`
                           : '🔒 Bloqueada'}
                       </span>
 
@@ -250,7 +251,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
               {apexNodes.map((node) => {
                 const isUnlocked = unlockedSet.has(node.id);
                 const isAvailable = isNodeAvailable(activeWolf, node);
-                const canLearn = isAvailable && activeStats.availablePoints > 0;
+                const canLearn = isAvailable && activeStats.availablePoints >= getSkillCost(node);
 
                 return (
                   <div
@@ -267,7 +268,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-2">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                          APEX
+                          APEX · {getSkillCost(node)} puntos
                         </span>
                         {isUnlocked ? (
                           <span className="w-5 h-5 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-bold">
@@ -293,8 +294,10 @@ export const FullSkillTreeModal: React.FC<Props> = ({
                         {isUnlocked
                           ? '✅ Desbloqueada'
                           : isAvailable
-                          ? '⚡ Disponible'
-                          : 'Requiere 10 pts'}
+                          ? canLearn ? '⚡ Disponible' : `Requiere ${getSkillCost(node)} puntos`
+                          : activeStats.branchPoints[node.branch] < (node.apexPointsRequired ?? 10)
+                          ? 'Requiere 10 pts en la rama'
+                          : `Requiere ${node.prerequisites.map(id => SKILL_NODE_MAP.get(id)?.nameEs ?? id).join(' y ')}`}
                       </span>
 
                       {canLearn && onLearnNode && (
@@ -332,6 +335,12 @@ export const FullSkillTreeModal: React.FC<Props> = ({
               <p className="text-xs text-stone-300 leading-relaxed">
                 {activeNodeDetail.descriptionEs}
               </p>
+              <p className="text-xs text-stone-400">Coste: {getSkillCost(activeNodeDetail)} {getSkillCost(activeNodeDetail) === 1 ? 'punto' : 'puntos'}.</p>
+              {activeNodeDetail.prerequisites.length > 0 && (
+                <p className="text-xs text-stone-400">
+                  Requiere: {activeNodeDetail.prerequisites.map(id => SKILL_NODE_MAP.get(id)?.nameEs ?? id).join(activeNodeDetail.requiresAnyPrereq ? ' o ' : ' y ')}.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -343,7 +352,7 @@ export const FullSkillTreeModal: React.FC<Props> = ({
                 Cerrar
               </button>
               {isNodeAvailable(activeWolf, activeNodeDetail) &&
-                activeStats.availablePoints > 0 &&
+                activeStats.availablePoints >= getSkillCost(activeNodeDetail) &&
                 !unlockedSet.has(activeNodeDetail.id) &&
                 onLearnNode && (
                   <button

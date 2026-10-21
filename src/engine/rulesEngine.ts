@@ -11,8 +11,31 @@ import {
   BASE_WOLF_STATS,
 } from './skillTreeData';
 
+export const RULES_VERSION = 2;
+
+export function getSkillCost(node: SkillNode): number {
+  return node.cost ?? (node.isApex ? 2 : 1);
+}
+
+export function getSkillFrequency(node: SkillNode): string | undefined {
+  const frequency = node.frequency ?? node.actionType;
+  if (frequency === 'daily') return '1/día';
+  if (frequency === 'weekly') return '1/semana';
+  return undefined;
+}
+
+export function getSpentPoints(wolf: WolfData): number {
+  return [...new Set(wolf.unlockedNodeIds)].reduce((total, id) => {
+    const node = SKILL_NODE_MAP.get(id);
+    return total + (node ? getSkillCost(node) : 0);
+  }, 0);
+}
+
 export function calculateWolfStats(wolf: WolfData): CalculatedWolfStats {
-  const spentPoints = wolf.unlockedNodeIds.length;
+  const nodes = [...new Set(wolf.unlockedNodeIds)]
+    .map(id => SKILL_NODE_MAP.get(id))
+    .filter((node): node is SkillNode => !!node);
+  const spentPoints = getSpentPoints(wolf);
   const availablePoints = Math.max(0, wolf.totalSkillPoints - spentPoints);
 
   const branchPoints: Record<SkillBranchId, number> = {
@@ -39,12 +62,13 @@ export function calculateWolfStats(wolf: WolfData): CalculatedWolfStats {
   const spellsAndDaily: CalculatedWolfStats['spellsAndDaily'] = [];
   const apexSkills: CalculatedWolfStats['apexSkills'] = [];
 
-  for (const nodeId of wolf.unlockedNodeIds) {
-    const node = SKILL_NODE_MAP.get(nodeId);
-    if (!node) continue;
+  const highestDie = (current: string | null, next: string): string => {
+    const size = (die: string) => Number(die.replace(/^.*d/, ''));
+    return !current || size(next) > size(current) ? next : current;
+  };
 
-    // Count branch points
-    branchPoints[node.branch] = (branchPoints[node.branch] || 0) + 1;
+  for (const node of nodes) {
+    branchPoints[node.branch] += getSkillCost(node);
 
     // Highest non-cumulative modifiers
     if (node.modifiers?.ac && node.modifiers.ac > maxAc) {
@@ -70,43 +94,82 @@ export function calculateWolfStats(wolf: WolfData): CalculatedWolfStats {
     }
 
     if (node.modifiers?.biteDamage) {
-      // Pick highest dice
-      biteDamage = node.modifiers.biteDamage;
+      if (!biteDamage || parseInt(node.modifiers.biteDamage) > parseInt(biteDamage)) {
+        biteDamage = node.modifiers.biteDamage;
+      }
     }
     if (node.modifiers?.survivalBonusDie) {
-      survivalBonusDie = node.modifiers.survivalBonusDie;
+      survivalBonusDie = highestDie(survivalBonusDie, node.modifiers.survivalBonusDie);
     }
     if (node.modifiers?.wisdomSaveBonusDie) {
-      wisdomSaveBonusDie = node.modifiers.wisdomSaveBonusDie;
+      wisdomSaveBonusDie = highestDie(wisdomSaveBonusDie, node.modifiers.wisdomSaveBonusDie);
+    }
+  }
+
+  const feralBite = wolf.unlockedNodeIds.includes('combat_apex_feral_bite');
+  const biteRange = feralBite ? 10 : 5;
+  const biteTrigger = feralBite ? 'Cuando tú o un aliado infligen daño' : 'Cuando infliges daño';
+
+  for (const node of nodes) {
+    // Upgrade tiers remain purchased, but the sheet shows only the current effect.
+    if (node.modifiers?.biteDamage) continue;
+    if (node.modifiers?.wisdomSaveBonusDie && node.modifiers.wisdomSaveBonusDie !== wisdomSaveBonusDie) continue;
+    if (node.modifiers?.performanceBonus && node.modifiers.performanceBonus !== maxPerformance) continue;
+    if (node.id === 'emotional_short_rest_double' && wolf.unlockedNodeIds.includes('emotional_rest_two_creatures')) continue;
+    if (node.id === 'emotional_rest_two_creatures' && wolf.unlockedNodeIds.includes('emotional_rest_entire_party')) continue;
+    if (node.id === 'mobility_carry_small' && wolf.unlockedNodeIds.includes('mobility_carry_medium')) continue;
+    if (node.id === 'mobility_carry_medium' && wolf.unlockedNodeIds.includes('mobility_carry_two_medium')) continue;
+
+    let name = node.nameEs;
+    let description = node.descriptionEs;
+    if (node.id === 'tracking_search') {
+      name = `Comando de Buscar (+${maxPerception})`;
+      description = `Comando de Buscar (Acción Adicional). Percepción +${maxPerception}.`;
+    } else if (node.id === 'tracking_hide') {
+      name = `Comando de Esconderse (+${maxStealth})`;
+      description = `Comando de Esconderse (Acción Adicional). Sigilo +${maxStealth}.`;
+    } else if (node.modifiers?.performanceBonus) {
+      name = `Animador de Taberna (+${maxPerformance})`;
+      description = `Tu lobo puede entretener a la gente y ganar oro. Interpretación +${maxPerformance}.`;
     }
 
     // Categorized abilities
     if (node.isApex) {
       apexSkills.push({
-        name: node.nameEs,
-        description: node.descriptionEs,
+        name,
+        description,
         branch: node.branch,
       });
+      continue;
     }
 
-    if (node.actionType === 'bonus_action' || node.category === 'command') {
+    const frequency = getSkillFrequency(node);
+    if (frequency) {
+      spellsAndDaily.push({
+        name,
+        description,
+        frequency,
+        actionType: node.actionType === 'bonus_action' ? 'Acción Adicional' : undefined,
+      });
+    } else if (node.actionType === 'bonus_action' || node.category === 'command') {
       commands.push({
-        name: node.nameEs,
-        description: node.descriptionEs,
+        name,
+        description,
         actionType: 'Acción Adicional',
       });
-    } else if (node.actionType === 'daily' || node.actionType === 'weekly' || node.category === 'spell') {
-      spellsAndDaily.push({
-        name: node.nameEs,
-        description: node.descriptionEs,
-        frequency: node.actionType === 'weekly' ? '1/semana' : '1/día',
-      });
-    } else if (node.category === 'passive' || node.category === 'utility') {
+    } else if (node.category === 'passive' || node.category === 'utility' || node.modifiers?.performanceBonus) {
       passives.push({
-        name: node.nameEs,
-        description: node.descriptionEs,
+        name,
+        description,
       });
     }
+  }
+
+  if (biteDamage) {
+    passives.unshift({
+      name: `Mordisco (${biteDamage})`,
+      description: `${biteTrigger} a una criatura y tu lobo está a ${biteRange} pies de ella, infliges ${biteDamage} de daño perforante adicional (1/turno).`,
+    });
   }
 
   // Calculate saving throws: base + pips
@@ -122,6 +185,7 @@ export function calculateWolfStats(wolf: WolfData): CalculatedWolfStats {
 
   return {
     level: spentPoints,
+    learnedSkillCount: nodes.length,
     spentPoints,
     availablePoints,
     ac: maxAc,
@@ -131,6 +195,8 @@ export function calculateWolfStats(wolf: WolfData): CalculatedWolfStats {
     savingThrows,
     branchPoints,
     biteDamage,
+    biteRange,
+    biteTrigger,
     perceptionBonus: maxPerception,
     stealthBonus: maxStealth,
     performanceBonus: maxPerformance,
@@ -153,10 +219,7 @@ export function isNodeAvailable(wolf: WolfData, node: SkillNode): boolean {
   // If Apex skill: requires 10 points in its branch + specific prerequisites if any
   if (node.isApex) {
     const requiredPoints = node.apexPointsRequired ?? 10;
-    const branchCount = wolf.unlockedNodeIds.filter((id) => {
-      const n = SKILL_NODE_MAP.get(id);
-      return n?.branch === node.branch;
-    }).length;
+    const branchCount = calculateWolfStats(wolf).branchPoints[node.branch];
 
     if (branchCount < requiredPoints) {
       return false;
@@ -204,8 +267,8 @@ export function unlockNode(wolf: WolfData, nodeId: string): WolfData {
   if (!node) throw new Error(`Habilidad desconocida: ${nodeId}`);
 
   const stats = calculateWolfStats(wolf);
-  if (stats.availablePoints <= 0) {
-    throw new Error('No hay puntos de habilidad disponibles');
+  if (stats.availablePoints < getSkillCost(node)) {
+    throw new Error(`Se necesitan ${getSkillCost(node)} puntos de habilidad`);
   }
 
   if (!isNodeAvailable(wolf, node)) {
@@ -253,9 +316,10 @@ export function createInitialWolf(id = 'lobo-1', name = 'Lobo Compañero'): Wolf
     id,
     name,
     avatarUrl: '/avatars/wolf_gray.png',
-    totalSkillPoints: 1, // 1 starting point to try out
+    rulesVersion: RULES_VERSION,
+    totalSkillPoints: 0,
     unlockedNodeIds: [],
-    specialFoodCount: 2, // 2 starting treats
+    specialFoodCount: 0,
     savingThrowPips: {
       str: 0,
       dex: 0,
@@ -267,5 +331,40 @@ export function createInitialWolf(id = 'lobo-1', name = 'Lobo Compañero'): Wolf
     notes: 'Compañero leal del grupo.',
     createdAt: Date.now(),
     updatedAt: Date.now(),
+  };
+}
+
+// Keep earned resources and valid purchases when loading pre-correction saves.
+export function migrateWolfRules(wolf: WolfData): WolfData {
+  if ((wolf.rulesVersion ?? 1) >= RULES_VERSION) return wolf;
+
+  let migrated: WolfData = { ...wolf, unlockedNodeIds: [], rulesVersion: RULES_VERSION };
+  let pending = [...new Set(wolf.unlockedNodeIds)];
+  let progressed = true;
+  while (progressed && pending.length) {
+    progressed = false;
+    const remaining: string[] = [];
+    for (const id of pending) {
+      const node = SKILL_NODE_MAP.get(id);
+      if (node && isNodeAvailable(migrated, node) &&
+          calculateWolfStats(migrated).availablePoints >= getSkillCost(node)) {
+        migrated = { ...migrated, unlockedNodeIds: [...migrated.unlockedNodeIds, id] };
+        progressed = true;
+      } else {
+        remaining.push(id);
+      }
+    }
+    pending = remaining;
+  }
+
+  const changed = pending.length > 0 || getSpentPoints(migrated) !== wolf.unlockedNodeIds.length;
+  return {
+    ...migrated,
+    updatedAt: Date.now(),
+    rulesMigration: changed ? {
+      removedSkills: pending.map(id => id === 'tracking_primeval_awareness'
+        ? 'Sentido Primitivo (encabezado sin coste)'
+        : SKILL_NODE_MAP.get(id)?.nameEs ?? id),
+    } : undefined,
   };
 }

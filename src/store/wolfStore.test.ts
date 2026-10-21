@@ -17,7 +17,7 @@ describe('Wolf Store Reducer', () => {
       wolfId: 'lobo-1',
       delta: 2,
     });
-    expect(state.wolves['lobo-1'].totalSkillPoints).toBe(3);
+    expect(state.wolves['lobo-1'].totalSkillPoints).toBe(2);
 
     // Try subtracting 5 points (should not drop below 0 spent)
     state = wolfReducer(state, {
@@ -84,7 +84,7 @@ describe('Wolf Store Reducer', () => {
     });
     expect(state.wolves['lobo-1'].unlockedNodeIds.length).toBe(0);
     // Total skill points remain untouched
-    expect(state.wolves['lobo-1'].totalSkillPoints).toBe(4);
+    expect(state.wolves['lobo-1'].totalSkillPoints).toBe(3);
   });
 
   it('handles ADD_FOOD and FEED_FOOD', () => {
@@ -93,7 +93,7 @@ describe('Wolf Store Reducer', () => {
       wolfId: 'lobo-1',
       delta: 3,
     });
-    expect(state.wolves['lobo-1'].specialFoodCount).toBe(5); // 2 initial + 3 = 5
+    expect(state.wolves['lobo-1'].specialFoodCount).toBe(3);
 
     // Feed Str
     state = wolfReducer(state, {
@@ -101,7 +101,7 @@ describe('Wolf Store Reducer', () => {
       wolfId: 'lobo-1',
       stat: 'str',
     });
-    expect(state.wolves['lobo-1'].specialFoodCount).toBe(4);
+    expect(state.wolves['lobo-1'].specialFoodCount).toBe(2);
     expect(state.wolves['lobo-1'].savingThrowPips.str).toBe(1);
   });
 });
