@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { WolfProvider, useWolf } from './context/WolfContext';
 import { WolfSheet } from './components/WolfSheet';
 import { ImmediateUpgrades } from './components/ImmediateUpgrades';
+import { DMDashboard } from './components/DMDashboard';
 import {
   PawPrint,
   Sparkles,
@@ -202,15 +203,7 @@ const AppContent: React.FC = () => {
         )}
 
         {activeTab === 'dm' && (
-          <div className="bg-stone-900/60 border border-stone-800 rounded-3xl p-6 text-center py-12">
-            <ShieldCheck className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-            <h3 className="text-xl font-bold text-stone-100">
-              Panel de Control del Dungeon Master (Chunk 5)
-            </h3>
-            <p className="text-sm text-stone-400 max-w-md mx-auto mt-2">
-              Aquí el DM otorgará puntos de nivel, raciones de comida especial y botón de reasignación (respec).
-            </p>
-          </div>
+          <DMDashboard />
         )}
       </main>
 
