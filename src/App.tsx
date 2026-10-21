@@ -49,20 +49,15 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-stone-900/95 backdrop-blur-md border-b border-stone-800 shadow-md">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo / Brand */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-stone-950 shadow-md shadow-amber-500/20">
-              <PawPrint className="w-5 h-5 fill-current" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-stone-950 shadow-md shadow-amber-500/20">
+              <PawPrint className="w-4 h-4 fill-current" />
             </div>
-            <div>
-              <span className="font-black tracking-tight text-sm sm:text-base text-stone-100 block">
-                Wolf Companion
-              </span>
-              <span className="text-[10px] text-amber-400 font-medium block -mt-1">
-                D&D 5e Evolution Tracker
-              </span>
-            </div>
+            <span className="font-black tracking-tight text-base sm:text-lg text-stone-100">
+              Wolf Companion
+            </span>
           </div>
 
           {/* Wolf Selector & Actions */}

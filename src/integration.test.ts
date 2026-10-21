@@ -15,12 +15,12 @@ describe('End-to-End Game Session Flow', () => {
     state = wolfReducer(state, {
       type: 'ADD_WOLF',
       name: 'Fenrir',
-      avatarUrl: '/avatars/wolf_white.jpg',
+      avatarUrl: '/avatars/wolf_white.png',
     });
 
     const fenrirId = state.activeWolfId;
     expect(state.wolves[fenrirId].name).toBe('Fenrir');
-    expect(state.wolves[fenrirId].avatarUrl).toBe('/avatars/wolf_white.jpg');
+    expect(state.wolves[fenrirId].avatarUrl).toBe('/avatars/wolf_white.png');
 
     // 3. DM grants 3 skill points and 3 special food treats
     state = wolfReducer(state, {

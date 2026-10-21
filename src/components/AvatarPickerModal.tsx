@@ -150,7 +150,7 @@ export const AvatarPickerModal: React.FC<Props> = ({
                       alt={opt.name}
                       onError={(e) => {
                         // Fallback image if file not yet loaded
-                        (e.target as HTMLImageElement).src = '/avatars/wolf_gray.jpg';
+                        (e.target as HTMLImageElement).src = '/avatars/wolf_gray.png';
                       }}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                     />

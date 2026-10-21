@@ -79,7 +79,7 @@ export function wolfReducer(state: AppState, action: WolfAction): AppState {
       const id = `lobo-${Date.now().toString().slice(-4)}`;
       const newWolf: WolfData = {
         ...createInitialWolf(id, action.name.trim() || 'Nuevo Lobo'),
-        avatarUrl: action.avatarUrl || '/avatars/wolf_gray.jpg',
+        avatarUrl: action.avatarUrl || '/avatars/wolf_gray.png',
       };
       return {
         ...state,
